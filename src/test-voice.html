@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音输入测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            transition: all 0.3s;
+        }
+        .btn.recording {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .status {
+            text-align: center;
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>语音输入功能测试</h2>
+        <p class="status" id="status">点击下方按钮开始语音输入</p>
+        
+        <button class="btn" id="voiceBtn">
+            🎤
+        </button>
+        
+        <div class="result" id="result">
+            识别结果将显示在这里...
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h4>浏览器支持情况:</h4>
+            <p id="supportInfo">检测中...</p>
+        </div>
+    </div>
+
+    <script>
+        const voiceBtn = document.getElementById('voiceBtn');
+        const resultDiv = document.getElementById('result');
+        const statusEl = document.getElementById('status');
+        const supportInfo = document.getElementById('supportInfo');
+        
+        let recognition = null;
+        let isRecording = false;
+        
+        // 检查浏览器支持
+        function checkBrowserSupport() {
+            const support = {
+                webkitSpeechRecognition: 'webkitSpeechRecognition' in window,
+                speechRecognition: 'SpeechRecognition' in window,
+                supported: ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window)
+            };
+            
+            supportInfo.innerHTML = `
+                <strong>Webkit SpeechRecognition:</strong> ${support.webkitSpeechRecognition ? '✅ 支持' : '❌ 不支持'}<br>
+                <strong>Standard SpeechRecognition:</strong> ${support.speechRecognition ? '✅ 支持' : '❌ 不支持'}<br>
+                <strong>总体支持:</strong> ${support.supported ? '✅ 您的浏览器支持语音识别' : '❌ 您的浏览器不支持语音识别'}
+            `;
+            
+            return support.supported;
+        }
+        
+        // 初始化语音识别
+        function initSpeechRecognition() {
+            if (!checkBrowserSupport()) {
+                voiceBtn.disabled = true;
+                voiceBtn.style.opacity = '0.5';
+                return;
+            }
+            
+            const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'zh-CN';
+            
+            recognition.onstart = function() {
+                isRecording = true;
+                voiceBtn.classList.add('recording');
+                statusEl.textContent = '正在聆听...';
+                resultDiv.textContent = '请开始说话...';
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                resultDiv.textContent = transcript;
+                statusEl.textContent = '识别完成';
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('语音识别错误:', event.error);
+                resultDiv.textContent = `错误: ${event.error}`;
+                statusEl.textContent = '识别出错';
+                stopRecording();
+            };
+            
+            recognition.onend = function() {
+                stopRecording();
+            };
+        }
+        
+        function startRecording() {
+            if (recognition && !isRecording) {
+                recognition.start();
+            }
+        }
+        
+        function stopRecording() {
+            isRecording = false;
+            voiceBtn.classList.remove('recording');
+            statusEl.textContent = '点击按钮开始语音输入';
+        }
+        
+        voiceBtn.addEventListener('click', function() {
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                startRecording();
+            }
+        });
+        
+        // 初始化
+        initSpeechRecognition();
+    </script>
+</body>
+</html>
